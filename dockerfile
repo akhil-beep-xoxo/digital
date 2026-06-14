@@ -1,7 +1,8 @@
 FROM php:8.2-apache
 
-# Disable conflicting MPM modules
-RUN a2dismod mpm_worker mpm_event 2>/dev/null || true
+# Disable all MPM modules and enable only mpm_prefork
+RUN a2dismod mpm_worker mpm_event mpm_prefork 2>/dev/null || true && \
+    a2enmod mpm_prefork
 
 COPY . /var/www/html/
 
