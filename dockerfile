@@ -1,18 +1,25 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm-alpine
 
-# Remove conflicting MPM modules and comment out their LoadModule directives
-RUN rm -f /etc/apache2/mods-available/mpm_event.* /etc/apache2/mods-available/mpm_worker.* && \
-    rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf && \
-    find /etc/apache2 -type f -name "*.conf" -exec sed -i 's/^LoadModule mpm_event_module/#LoadModule mpm_event_module/g' {} \; && \
-    find /etc/apache2 -type f -name "*.conf" -exec sed -i 's/^LoadModule mpm_worker_module/#LoadModule mpm_worker_module/g' {} \; && \
-    a2enmod mpm_prefork && \
-    apache2ctl configtest
+# Install nginx, supervisord, and SQLite PDO extension
+RUN apk add --no-cache nginx supervisor sqlite-libs \
+    && docker-php-ext-install pdo pdo_sqlite
 
-COPY . /var/www/html/
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
-RUN mkdir -p /var/www/html/data \
-    && chown -R www-data:www-data /var/www/html/data
+# Copy supervisord configuration
+COPY supervisord.conf /etc/supervisord.conf
+
+# Copy application source
+COPY . /app/
+
+RUN mkdir -p /app/data \
+    && chown -R www-data:www-data /app/data \
+    && chown -R www-data:www-data /app
+
+# nginx needs /run/nginx for its PID file on Alpine
+RUN mkdir -p /run/nginx
 
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
