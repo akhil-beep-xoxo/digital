@@ -1,7 +1,7 @@
 FROM php:8.2-fpm-alpine
 
 # Install nginx, supervisord, and SQLite PDO extension
-RUN apk add --no-cache nginx supervisor sqlite-libs \
+RUN apk add --no-cache nginx supervisor sqlite-dev \
     && docker-php-ext-install pdo pdo_sqlite
 
 # Copy nginx configuration
